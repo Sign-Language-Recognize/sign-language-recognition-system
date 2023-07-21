@@ -1,0 +1,957 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+get_ipython().system('pip install tensorflow==2.10.0 tensorflow-gpu==2.10.0 opencv-python mediapipe sklearn matplotlib')
+
+
+# In[2]:
+
+
+import cv2
+import numpy as np
+import os
+from matplotlib import pyplot as plt
+import time
+import mediapipe as mp
+
+
+# In[3]:
+
+
+mp_holistic = mp.solutions.holistic   # Holistic model
+mp_drawing = mp.solutions.drawing_utils   # Drawing utilities
+
+
+# In[4]:
+
+
+def mediapipe_detection(image,model):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # color conversion BGR 2 RGB
+    image.flags.writeable = False                   # image is no longer writeable
+    results = model.process(image)                  # make predictions
+    image.flags.writeable = True                    # image is writeable
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # color conversion RGB 2 BGR
+    return image, results
+
+
+# In[5]:
+
+
+get_ipython().run_line_magic('pinfo2', 'cv2.cvtColor')
+
+
+# In[5]:
+
+
+def draw_landmarks(image, results):
+    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS)     #face connnections
+    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)      #pose conections
+    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS) #hand connections
+    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)#hand connections
+
+
+# In[6]:
+
+
+def draw_styled_landmarks(image, results):
+    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS,
+                              mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1),
+                              mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
+                              )     
+    #face connnections
+    mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+                              mp_drawing.DrawingSpec(color=(80,22,10), thickness=2, circle_radius=4),
+                              mp_drawing.DrawingSpec(color=(80,44,121), thickness=2, circle_radius=2)
+                              )          
+    #pose conections
+    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                              mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4),
+                              mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
+                             )
+                              
+                             
+    #hand connections
+    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                             mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4),
+                             mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
+                             )
+    #hand connections
+
+
+# In[7]:
+
+
+mp_holistic.POSE_CONNECTIONS
+
+
+# In[8]:
+
+
+get_ipython().run_line_magic('pinfo2', 'mp_drawing.draw_landmarks')
+
+
+# In[9]:
+
+
+cap = cv2.VideoCapture(0)
+# set mediapipe model
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+    while cap.isOpened():
+
+        #read feed
+        ret,frame = cap.read()
+
+        #make detections
+        image, results = mediapipe_detection(frame,holistic)
+        print(results)
+        
+        #draw landmarks
+        draw_styled_landmarks(image, results)
+        
+        #show to screen
+        cv2.imshow('OpenCV Feed',image)
+
+        #Break gracefully
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# In[10]:
+
+
+a=results.face_landmarks.landmark
+print(a)
+
+
+# In[11]:
+
+
+print(len(a))
+
+
+# In[12]:
+
+
+b=results.pose_landmarks.landmark
+print(b)
+
+
+# In[13]:
+
+
+print(len(b))
+
+
+# In[14]:
+
+
+frame
+
+
+# In[15]:
+
+
+plt.imshow(frame)
+
+
+# In[16]:
+
+
+plt.imshow(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB))
+
+
+# In[17]:
+
+
+results
+
+
+# In[18]:
+
+
+draw_landmarks(frame,results)
+
+
+# In[19]:
+
+
+plt.imshow(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB))
+
+
+# In[20]:
+
+
+results.pose_landmarks.landmark[0].visibility
+
+
+# In[ ]:
+
+
+
+
+
+# In[21]:
+
+
+pose=[]
+for res in results.pose_landmarks.landmark:
+    test=np.array([res.x,res.y,res.z,res.visibility])
+    pose.append(test)
+
+
+# In[22]:
+
+
+test
+
+
+# In[23]:
+
+
+pose
+
+
+# In[24]:
+
+
+pose=np.array([[res.x,res.y,res.z,res.visibility] for res in results.pose_landmarks.landmark]).flatten()
+
+
+# In[25]:
+
+
+face=np.array([[res.x,res.y,res.z] for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(468*3)
+
+
+# In[26]:
+
+
+lh=np.array([[res.x,res.y,res.z] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
+
+
+# In[27]:
+
+
+lh
+
+
+# In[28]:
+
+
+rh=np.array([[res.x,res.y,res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
+
+
+# In[29]:
+
+
+rh
+
+
+# In[30]:
+
+
+pose
+
+
+# In[31]:
+
+
+pose.shape
+
+
+# In[32]:
+
+
+np.zeros(21*3)
+
+
+# In[33]:
+
+
+def extract_keypoints(results):
+    pose=np.array([[res.x,res.y,res.z,res.visibility] for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(33*4)
+    face=np.array([[res.x,res.y,res.z] for res in results.face_landmarks.landmark]).flatten() if results.face_landmarks else np.zeros(468*3)
+    lh=np.array([[res.x,res.y,res.z] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
+    rh=np.array([[res.x,res.y,res.z] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)
+    return np.concatenate([pose,face,lh,rh])
+
+
+# In[34]:
+
+
+result_test=extract_keypoints(results)
+
+
+# In[35]:
+
+
+result_test
+
+
+# In[36]:
+
+
+extract_keypoints(results).shape
+
+
+# In[37]:
+
+
+np.save('0',result_test)
+
+
+# In[38]:
+
+
+np.load('0.npy')
+
+
+# In[39]:
+
+
+# set folders for data collections
+
+
+# In[40]:
+
+
+#path for exported data, numpy array
+DATA_PATH=os.path.join('MP_Data')
+
+#actions that we try to detect
+actions=np.array(['hello','thanks','iloveyou'])
+
+# 20 videos of input data
+no_sequences=20
+
+# 20 frames in lenght of video
+sequence_length=20
+
+
+# In[41]:
+
+
+for action in actions:
+    for sequence in range(no_sequences):
+        try:
+            os.makedirs(os.path.join(DATA_PATH,action,str(sequence)))
+        except:
+            pass
+
+
+# In[42]:
+
+
+np.save('0',result_test)
+
+
+# In[43]:
+
+
+np.load('0.npy')
+
+
+# In[44]:
+
+
+# COLLECT KEYPOINT VALUES FOR TRAINING AND TESTING
+
+
+# In[44]:
+
+
+cap = cv2.VideoCapture(0)
+# set mediapipe model
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+    
+    # loop through actions
+    for action in actions:
+        # Loop through sequences
+        for sequence in range(no_sequences):
+            
+            # loop through video length
+            for frame_num in range(sequence_length):
+
+                #read feed
+                ret,frame = cap.read()
+
+                #make detections
+                image, results = mediapipe_detection(frame,holistic)
+                print(results)
+
+                #draw landmarks
+                draw_styled_landmarks(image, results)
+                
+                # Apply collection and wait logic
+                if frame_num==0:
+                    cv2.putText(image,'STARTING COLLECTION',(70,150),
+                               cv2.FONT_HERSHEY_SIMPLEX,1,(0,205,0),4,cv2.LINE_AA)
+                    cv2.putText(image,'frames {} video number {}'.format(action,sequence),(30,30),
+                               cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,205),1,cv2.LINE_AA)
+                    cv2.imshow('OpenCV Feed',image)
+                    cv2.waitKey(1000)
+                    
+                else:
+                    cv2.putText(image,'frames {} video number {}'.format(action,sequence),(30,30),
+                               cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,205),1,cv2.LINE_AA)
+                    #show to screen
+                    cv2.imshow('OpenCV Feed',image)
+                    
+                # New export keypoints
+                keypoints=extract_keypoints(results)
+                npy_path=os.path.join(DATA_PATH,action,str(sequence),str(frame_num))
+                np.save(npy_path,keypoints)
+
+                
+
+                #Break gracefully
+                if cv2.waitKey(10) & 0xFF == ord('q'):
+                    break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# In[45]:
+
+
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.utils import to_categorical
+
+
+# In[46]:
+
+
+# Preprocessing data and creating label and features
+
+
+# In[47]:
+
+
+label_map={label:num for num,label in enumerate(actions)}
+
+
+# In[48]:
+
+
+label_map
+
+
+# In[49]:
+
+
+sequences,labels=[],[]
+for action in actions:
+    for sequence in range(no_sequences):
+        window=[]
+        for frame_num in range(sequence_length):
+            res=np.load(os.path.join(DATA_PATH,action,str(sequence),"{}.npy".format(frame_num)))
+            window.append(res)
+        sequences.append(window)
+        labels.append(label_map[action])
+
+
+# In[50]:
+
+
+sequences
+
+
+# In[51]:
+
+
+np.array(sequences).shape
+
+
+# In[52]:
+
+
+labels
+
+
+# In[53]:
+
+
+np.array(labels)
+
+
+# In[54]:
+
+
+x=np.array(sequences)
+
+
+# In[55]:
+
+
+x.shape
+
+
+# In[56]:
+
+
+y=to_categorical(labels).astype(int)
+
+
+# In[57]:
+
+
+y
+
+
+# In[58]:
+
+
+x_train,x_test,y_train,y_test = train_test_split(x,y, test_size = 0.05)
+
+
+# In[59]:
+
+
+x_train.shape
+
+
+# In[60]:
+
+
+y_train.shape
+
+
+# In[61]:
+
+
+y_test.shape
+
+
+# In[62]:
+
+
+# BUILD and TRAIN LSTM neural network
+
+
+# In[63]:
+
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.callbacks import TensorBoard
+
+
+# In[64]:
+
+
+log_dir=os.path.join('logs')
+tb_callback=TensorBoard(log_dir=log_dir)
+
+
+# In[65]:
+
+
+model=Sequential()
+model.add(LSTM(64,return_sequences=True,activation='relu',input_shape=(20,1662)))
+model.add(LSTM(128,return_sequences=True,activation='relu'))
+model.add(LSTM(64,return_sequences=False,activation='relu'))
+model.add(Dense(64,activation='relu'))
+model.add(Dense(32,activation='relu'))
+model.add(Dense(actions.shape[0],activation='softmax'))
+
+
+# In[66]:
+
+
+actions.shape[0]
+
+
+# In[67]:
+
+
+# for example, the model gets inputs as
+res=[.7,0.2,0.1]
+
+
+# In[68]:
+
+
+res
+
+
+# In[69]:
+
+
+np.argmax(res) # given labels
+
+
+# In[70]:
+
+
+actions[np.argmax(res)] # prediction of action
+
+
+# In[71]:
+
+
+model.compile(optimizer='Adam',loss='categorical_crossentropy',metrics=['categorical_accuracy'])
+
+
+# In[72]:
+
+
+model.fit(x_train,y_train,epochs=1000,callbacks=[tb_callback])
+
+
+# In[73]:
+
+
+model.summary()
+
+
+# In[74]:
+
+
+# MODEL PREDICTION
+
+
+# In[75]:
+
+
+res=model.predict(x_test)
+
+
+# In[76]:
+
+
+res
+
+
+# In[77]:
+
+
+np.sum(res[0])
+
+
+# In[78]:
+
+
+actions[np.argmax(res[1])]
+
+
+# In[79]:
+
+
+actions[np.argmax(y_test[2])]
+
+
+# In[80]:
+
+
+# SAVE WEIGHTS
+
+
+# In[81]:
+
+
+model.save('action.h5')
+
+
+# In[ ]:
+
+
+
+
+
+# In[82]:
+
+
+model.load_weights('action.h5')
+
+
+# In[83]:
+
+
+from sklearn.metrics import multilabel_confusion_matrix,accuracy_score
+
+
+# In[84]:
+
+
+yhat=model.predict(x_test)
+
+
+# In[85]:
+
+
+ytrue=np.argmax(y_test,axis=1).tolist()
+yhat=np.argmax(yhat,axis=1).tolist()
+
+
+# In[86]:
+
+
+yhat,ytrue
+
+
+# In[87]:
+
+
+# TESTING SET
+
+
+# In[88]:
+
+
+multilabel_confusion_matrix(ytrue,yhat)
+
+
+# In[89]:
+
+
+accuracy_score(ytrue,yhat)
+
+
+# In[90]:
+
+
+# TRAINING SET
+
+
+# In[91]:
+
+
+yhat=model.predict(x_train)
+
+
+# In[92]:
+
+
+ytrue=np.argmax(y_train,axis=1).tolist()
+yhat=np.argmax(yhat,axis=1).tolist()
+
+
+# In[93]:
+
+
+multilabel_confusion_matrix(ytrue,yhat)
+
+
+# In[94]:
+
+
+accuracy_score(ytrue,yhat)
+
+
+# In[95]:
+
+
+# REAL TIME TESTING
+
+
+# In[96]:
+
+
+colors=[(245,117,16),(117,245,16),(16,117,245)]
+def prob_viz(res,actions,input_frame,colors):
+    output_frame=input_frame.copy()
+    for num,prob in enumerate(res):
+        cv2.rectangle(output_frame,(0,60+num*40),(int(prob*100),90+num*40),colors[num],-1)
+        cv2.putText(output_frame,actions[num],(0,80+num*40),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),1,cv2.LINE_AA)
+        
+    return output_frame
+
+
+# In[ ]:
+
+
+
+
+
+# In[97]:
+
+
+# 1.NEW DETECTION VARIABLES
+sequence=[]
+sentence=[]
+threshold=0.4
+
+cap = cv2.VideoCapture(0)
+# set mediapipe model
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+    while cap.isOpened():
+
+        #read feed
+        ret,frame = cap.read()
+
+        #make detections
+        image, results = mediapipe_detection(frame,holistic)
+        print(results)
+        
+        #draw landmarksq
+        draw_styled_landmarks(image, results)
+        
+        # 2. PREDICTION LOGIC
+        keypoints=extract_keypoints(results)
+        sequence.append(keypoints)
+        sequence=sequence[-20:]
+      
+        if len(sequence)==20:
+            res=model.predict(np.expand_dims(sequence,axis=0))[0]
+            print(actions[np.argmax(res)])
+            
+        
+        
+        #show to screen
+        cv2.imshow('OpenCV Feed',image)
+
+        #Break gracefully
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# In[98]:
+
+
+np.expand_dims(x_test[0],axis=0).shape
+
+
+# In[99]:
+
+
+np.argmax(res)
+
+
+# In[100]:
+
+
+model.predict(np.expand_dims(x_test[0],axis=0))
+
+
+# In[ ]:
+
+
+
+
+
+# In[116]:
+
+
+# 1.NEW DETECTION VARIABLES
+sequence=[]
+sentence=[]
+threshold=0.7
+
+cap = cv2.VideoCapture(0)
+# set mediapipe model
+with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+    while cap.isOpened():
+
+        #read feed
+        ret,frame = cap.read()
+
+        #make detections
+        image, results = mediapipe_detection(frame,holistic)
+        print(results)
+        
+        #draw landmarksq
+        draw_styled_landmarks(image, results)
+        
+        # 2. PREDICTION LOGIC
+        keypoints=extract_keypoints(results)
+        sequence.append(keypoints)
+        sequence=sequence[-20:]
+      
+        if len(sequence)==20:
+            res=model.predict(np.expand_dims(sequence,axis=0))[0]
+            print(actions[np.argmax(res)])
+            
+        # 3. VISUALIZATION LOGIC
+        if res[np.argmax(res)] > threshold:
+            if len(sentence) > 0:
+                if actions[np.argmax(res)] != sentence[-1]:
+                    sentence.append(actions[np.argmax(res)])
+            else:
+                sentence.append(actions[np.argmax(res)])
+        if len(sentence) > 2:
+            sentence = sentence[-2:]
+        
+        # 4. VISUALIZE PROBABILITIES
+        image=prob_viz(res,actions,image,colors)
+        
+        cv2.rectangle(image,(0,0),(640,40),(245,117,16),-1)
+        cv2.putText(image,",o/p-".join(sentence),(3,30),
+                    cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            
+        #show to screen
+        cv2.imshow('OpenCV Feed',image)
+
+        #Break gracefully
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# In[117]:
+
+
+plt.figure(figsize=(15,15))
+plt.imshow(prob_viz(res,actions,image,colors))
+
+
+# In[118]:
+
+
+print(",output-".join(sentence))
+
+
+# In[111]:
+
+
+pip install pyttsx3
+
+
+# In[130]:
+
+
+import pyttsx3
+
+
+# In[131]:
+
+
+text_speech=pyttsx3.init()
+
+
+# In[132]:
+
+
+answer=sentence[-1]
+
+
+# In[133]:
+
+
+text_speech.say(answer)
+
+
+# In[134]:
+
+
+text_speech.runAndWait()
+
+
+# In[135]:
+
+
+print(sentence[-1])
+
+
+# In[ ]:
+
+
+
+
